@@ -16,6 +16,15 @@ public class Rocket : MonoBehaviour
     [SerializeField]
     float mainThrust = 100.0f;
 
+    [SerializeField]
+    AudioClip mainEngine;
+
+    [SerializeField]
+    AudioClip explosion;
+
+    [SerializeField]
+    AudioClip levelComplete;
+
     // Use this for initialization
     void Start()
     {
@@ -28,8 +37,8 @@ public class Rocket : MonoBehaviour
     {
         if (currentState != State.Dying)
         {
-            Thrust();
-            Rotate();
+            RespondToThrustInput();
+            RespondToRotateInput();
         }
     }
 
@@ -41,21 +50,45 @@ public class Rocket : MonoBehaviour
                 // Do Nothing
                 break;
             case "Finish":
-                print("Hit Finish");
-                currentState = State.Trancending;
-                currentLevel++;
-                if (currentLevel == 2)
-                {
-                    currentLevel = 0;
-                }
-                Invoke("LoadNextLevel", 1f);
+                LevelComplete();
                 break;
             default:
-                print("Dead!");
-                currentState = State.Dying;
-                currentLevel = 0;
-                Invoke("LoadNextLevel", 1f);
+                PlayerDead();
                 break;
+        }
+    }
+
+    private void LevelComplete()
+    {
+        if (currentState != State.Trancending)
+        {
+            var delay = levelComplete.length;
+
+            audioSource.Stop();
+            audioSource.PlayOneShot(levelComplete);
+            currentState = State.Trancending;
+            currentLevel++;
+            if (currentLevel == 2)
+            {
+                currentLevel = 0;
+            }
+
+            Invoke("LoadNextLevel", delay);
+        }
+    }
+
+    private void PlayerDead()
+    {
+        if (currentState != State.Dying)
+        {
+            var delay = explosion.length;
+
+            audioSource.Stop();
+            audioSource.PlayOneShot(explosion);
+            currentState = State.Dying;
+            currentLevel = 0;
+
+            Invoke("LoadNextLevel", delay);
         }
     }
 
@@ -63,16 +96,12 @@ public class Rocket : MonoBehaviour
     {
         SceneManager.LoadScene(currentLevel);
     }
-    
-    private void Thrust()
+
+    private void RespondToThrustInput()
     {
         if (Input.GetKey(KeyCode.Space))
         {
-            rigidbody.AddRelativeForce(Vector3.up * mainThrust);
-            if (!audioSource.isPlaying)
-            {
-                audioSource.Play();
-            }
+            ApplyThrust();
         }
 
         if (Input.GetKeyUp(KeyCode.Space))
@@ -81,7 +110,16 @@ public class Rocket : MonoBehaviour
         }
     }
 
-    private void Rotate()
+    private void ApplyThrust()
+    {
+        rigidbody.AddRelativeForce(Vector3.up * mainThrust);
+        if (!audioSource.isPlaying)
+        {
+            audioSource.PlayOneShot(mainEngine);
+        }
+    }
+
+    private void RespondToRotateInput()
     {
         float rotationThisFrame = Time.deltaTime * rcsThrust;
 
